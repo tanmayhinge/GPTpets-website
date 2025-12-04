@@ -4,8 +4,12 @@
 // ============================================
 // CONSTANTS
 // ============================================
+// Detect if device is mobile
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || window.innerWidth < 768;
+
 const PARTICLE_CONFIG = {
-    GAP: 11,                    // Distance between particles
+    GAP: isMobile ? 16 : 11,    // Larger gap on mobile for better performance
     SIZE_SMALL: 3,              // Small particle size
     SIZE_LARGE: 4.5,            // Large particle size
     BRIGHTNESS_THRESHOLD: 150,  // Threshold for particle size variation
@@ -91,6 +95,46 @@ window.addEventListener('mousemove', (e) => {
     mouse.x = e.x;
     mouse.y = e.y;
 });
+
+/**
+ * Touch event handlers for mobile devices
+ */
+window.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        lastMousePos.x = touch.clientX;
+        lastMousePos.y = touch.clientY;
+        mouse.x = touch.clientX;
+        mouse.y = touch.clientY;
+    }
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 0) {
+        const touch = e.touches[0];
+
+        if (mouse.x !== null && mouse.y !== null) {
+            mouseVelocity.x = touch.clientX - lastMousePos.x;
+            mouseVelocity.y = touch.clientY - lastMousePos.y;
+
+            // Change radius based on movement speed
+            const speed = Math.sqrt(mouseVelocity.x ** 2 + mouseVelocity.y ** 2);
+            mouse.targetRadius = mouse.baseRadius + Math.min(
+                speed * MOUSE_CONFIG.SPEED_MULTIPLIER,
+                MOUSE_CONFIG.MAX_SPEED_BONUS
+            );
+        }
+
+        lastMousePos.x = touch.clientX;
+        lastMousePos.y = touch.clientY;
+        mouse.x = touch.clientX;
+        mouse.y = touch.clientY;
+    }
+}, { passive: true });
+
+window.addEventListener('touchend', () => {
+    resetMouse();
+}, { passive: true });
 
 /**
  * Resets mouse state when cursor leaves the window
