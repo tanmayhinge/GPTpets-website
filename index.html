@@ -2,11 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>pssst psst</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>GPTPets - Animated Pets for ChatGPT, Claude & Gemini</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="Group 22.png">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://gptpets.com/">
+
+    <!-- Preload Critical Resources -->
+    <link rel="preload" href="styles.css" as="style">
+    <link rel="preload" href="Group 24 (1).png" as="image">
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="GPTPets brings 8 unique animated pets to your ChatGPT conversations. Choose from adorable dogs, otters, frogs, and cats with unique personalities and smooth animations.">
@@ -17,12 +25,14 @@
     <meta property="og:url" content="https://gptpets.com/">
     <meta property="og:title" content="GPTPets - Bring Animated Pets to Your ChatGPT Conversations">
     <meta property="og:description" content="8 unique animated pets that sit on your ChatGPT input bar with smooth animations and unique personalities.">
+    <meta property="og:image" content="https://gptpets.com/Group 24 (1).png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://gptpets.com/">
     <meta property="twitter:title" content="GPTPets - Bring Animated Pets to Your ChatGPT Conversations">
     <meta property="twitter:description" content="8 unique animated pets that sit on your ChatGPT input bar with smooth animations and unique personalities.">
+    <meta property="twitter:image" content="https://gptpets.com/Group 24 (1).png">
 
     <!-- Stylesheet -->
     <link rel="stylesheet" href="styles.css">
@@ -31,28 +41,27 @@
     <!-- Particle canvas for interactive background -->
     <canvas id="particle-canvas"></canvas>
 
-    <!-- Pattern Selector -->
-    <div class="pattern-selector">
-        <button class="pattern-btn active" data-pattern="ohsoshy-xK7Fd4YaX5Y-unsplash.jpg"
-                style="background-image: url('ohsoshy-xK7Fd4YaX5Y-unsplash.jpg');"
-                aria-label="Zebra pattern"></button>
-        <button class="pattern-btn" data-pattern="erik-mclean-0DqYWHY4GpA-unsplash.jpg"
-                style="background-image: url('erik-mclean-0DqYWHY4GpA-unsplash.jpg');"
-                aria-label="Leopard pattern"></button>
-        <button class="pattern-btn" data-pattern="pool.jpg"
-                style="background-image: url('pool.jpg');"
-                aria-label="Pool pattern"></button>
-        <button class="pattern-btn" data-pattern="Tiger Fur Pattern.jpeg"
-                style="background-image: url('Tiger Fur Pattern.jpeg');"
-                aria-label="Tiger pattern"></button>
-        <button class="pattern-btn" data-pattern="Шерсть жирафа.jpeg"
-                style="background-image: url('Шерсть жирафа.jpeg');"
-                aria-label="Giraffe pattern"></button>
-    </div>
-
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
+            <!-- Pattern Selector - Now inside glass panel -->
+            <div class="pattern-selector">
+                <button class="pattern-btn active" data-pattern="ohsoshy-xK7Fd4YaX5Y-unsplash.jpg"
+                        style="background-image: url('ohsoshy-xK7Fd4YaX5Y-unsplash.jpg');"
+                        aria-label="Zebra pattern"></button>
+                <button class="pattern-btn" data-pattern="erik-mclean-0DqYWHY4GpA-unsplash.jpg"
+                        style="background-image: url('erik-mclean-0DqYWHY4GpA-unsplash.jpg');"
+                        aria-label="Leopard pattern"></button>
+                <button class="pattern-btn" data-pattern="pool.jpg"
+                        style="background-image: url('pool.jpg');"
+                        aria-label="Pool pattern"></button>
+                <button class="pattern-btn" data-pattern="Tiger Fur Pattern.jpeg"
+                        style="background-image: url('Tiger Fur Pattern.jpeg');"
+                        aria-label="Tiger pattern"></button>
+                <button class="pattern-btn" data-pattern="Шерсть жирафа.jpeg"
+                        style="background-image: url('Шерсть жирафа.jpeg');"
+                        aria-label="Giraffe pattern"></button>
+            </div>
             <!-- Logo -->
             <div>
                 <img src="Group 24 (1).png" alt="GPTPets Logo" class="logo-image">
@@ -63,31 +72,22 @@
                 <img src="chicken.gif" alt="GPTPets Demo" class="demo-gif">
             </div>
 
-            <!-- Description -->
-            <p>Adorable pets that chill on your favourite prompting text-box. <br>They keep you company and you can also interact with them!</p>
-
-            <!-- YouTube Link -->
-            <a href="https://youtu.be/pXTS7ZkQKS4" target="_blank" rel="noopener noreferrer" class="youtube-link">
-                Watch YouTube video
-            </a>
-
             <!-- CTA Button -->
-            <a href="#" class="cta-button">
-                <img src="chrome-webstore.png" alt="Available in the Chrome Web Store" style="display: block; height: 70px; width: auto;">
-            </a>
+            <div style="text-align: center; display: block; width: 100%;">
+                <a href="https://chrome.google.com/webstore" class="cta-button" target="_blank" rel="noopener noreferrer" aria-label="Get GPTPets from Chrome Web Store">
+                    Get Chrome Extension
+                </a>
+            </div>
 
-            <!-- Scroll indicator -->
-            <div class="scroll-indicator" id="scrollIndicator">
-                <div class="scroll-line"></div>
-                <div class="scroll-arrow"></div>
+            <!-- Platform Support -->
+            <p class="platform-support">for ChatGPT, Claude and Gemini</p>
+
+            <!-- Footer - Now inside glass panel -->
+            <div class="footer-content" style="text-align: center !important; width: 100% !important; display: flex !important; justify-content: center !important; align-items: center !important;">
+                <p style="text-align: center !important; margin: 0 !important;">by <a href="https://tanmayhinge.com" target="_blank" rel="noopener noreferrer">Tanmay Hinge</a></p>
             </div>
         </div>
     </section>
-
-    <!-- Footer -->
-    <footer>
-        <p>by <a href="https://tanmayhinge.com" target="_blank" rel="noopener noreferrer">Tanmay Hinge</a></p>
-    </footer>
 
     <!-- JavaScript -->
     <script src="script.js"></script>

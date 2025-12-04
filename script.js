@@ -1,19 +1,50 @@
 // GPTPets JavaScript
+'use strict';
+
+// ============================================
+// CONSTANTS
+// ============================================
+const PARTICLE_CONFIG = {
+    GAP: 11,                    // Distance between particles
+    SIZE_SMALL: 3,              // Small particle size
+    SIZE_LARGE: 4.5,            // Large particle size
+    BRIGHTNESS_THRESHOLD: 150,  // Threshold for particle size variation
+    MIN_BRIGHTNESS: 20,         // Minimum brightness for particle creation
+    MIN_ALPHA: 50,              // Minimum alpha for particle visibility
+    OPACITY: 0.8                // Base opacity for particles
+};
+
+const MOUSE_CONFIG = {
+    BASE_RADIUS: 200,           // Base mouse interaction radius
+    SPEED_MULTIPLIER: 3,        // Multiplier for radius based on speed
+    MAX_SPEED_BONUS: 150        // Maximum bonus to radius from speed
+};
+
+const ANIMATION_CONFIG = {
+    FADE_IN_SPEED: 0.08,        // Particle fade in speed
+    FADE_OUT_SPEED: 0.03,       // Particle fade out speed
+    OPACITY_THRESHOLD: 0.01,    // Minimum opacity before removal
+    PARTICLE_DELAY: 100         // Delay before showing new particles (ms)
+};
+
+const TIMING_CONFIG = {
+    RESIZE_DEBOUNCE: 250        // Debounce time for resize events (ms)
+};
 
 // ============================================
 // PARTICLE SYSTEM
 // ============================================
 
 const canvas = document.getElementById('particle-canvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas?.getContext('2d');
 
 let particles = [];
 let mouse = {
     x: null,
     y: null,
-    radius: 200,
-    baseRadius: 200,
-    targetRadius: 200,
+    radius: MOUSE_CONFIG.BASE_RADIUS,
+    baseRadius: MOUSE_CONFIG.BASE_RADIUS,
+    targetRadius: MOUSE_CONFIG.BASE_RADIUS,
     angle: 0
 };
 let imageLoaded = false;
@@ -23,14 +54,25 @@ let lastMousePos = { x: 0, y: 0 };
 let sourcePoint = null; // Point from which new particles will emanate
 let animationRunning = false;
 
-// Set canvas size
+/**
+ * Resizes canvas to match window dimensions
+ */
 function resizeCanvas() {
+    if (!canvas) return;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
-resizeCanvas();
 
-// Track mouse position and velocity
+// Initialize canvas on load
+if (canvas && ctx) {
+    resizeCanvas();
+} else {
+    console.error('Canvas element not found or context unavailable');
+}
+
+/**
+ * Tracks mouse position and velocity for particle interaction
+ */
 window.addEventListener('mousemove', (e) => {
     if (mouse.x !== null && mouse.y !== null) {
         mouseVelocity.x = e.x - lastMousePos.x;
@@ -38,7 +80,10 @@ window.addEventListener('mousemove', (e) => {
 
         // Change radius based on movement speed
         const speed = Math.sqrt(mouseVelocity.x ** 2 + mouseVelocity.y ** 2);
-        mouse.targetRadius = mouse.baseRadius + Math.min(speed * 3, 150);
+        mouse.targetRadius = mouse.baseRadius + Math.min(
+            speed * MOUSE_CONFIG.SPEED_MULTIPLIER,
+            MOUSE_CONFIG.MAX_SPEED_BONUS
+        );
     }
 
     lastMousePos.x = e.x;
@@ -47,7 +92,9 @@ window.addEventListener('mousemove', (e) => {
     mouse.y = e.y;
 });
 
-// Reset mouse position when cursor leaves the window
+/**
+ * Resets mouse state when cursor leaves the window
+ */
 function resetMouse() {
     mouse.x = null;
     mouse.y = null;
@@ -66,7 +113,9 @@ window.addEventListener('mouseout', (e) => {
     }
 });
 
-// Particle class
+/**
+ * Particle class representing individual animated particles
+ */
 class Particle {
     constructor(x, y, color, size, startX = null, startY = null) {
         this.baseX = x;
@@ -102,9 +151,9 @@ class Particle {
     draw() {
         // Update opacity for fade in/out effect
         if (this.opacity < this.targetOpacity) {
-            this.opacity += 0.08; // Even faster fade in
+            this.opacity += ANIMATION_CONFIG.FADE_IN_SPEED;
         } else if (this.opacity > this.targetOpacity) {
-            this.opacity -= 0.03; // Slower fade out for old particles
+            this.opacity -= ANIMATION_CONFIG.FADE_OUT_SPEED;
         }
 
         // Clamp opacity between 0 and 1
@@ -200,8 +249,17 @@ class Particle {
     }
 }
 
-// Load and convert image to particles
+/**
+ * Loads an image and converts it to particles
+ * @param {string} imageSrc - Source path of the image
+ * @param {number|null} sourceX - X coordinate for particle animation source
+ * @param {number|null} sourceY - Y coordinate for particle animation source
+ */
 function init(imageSrc = currentPattern, sourceX = null, sourceY = null) {
+    if (!canvas || !ctx) {
+        console.error('Canvas not available for initialization');
+        return;
+    }
     // Fade out old particles
     particles.forEach(p => {
         p.targetOpacity = 0;
@@ -233,11 +291,10 @@ function init(imageSrc = currentPattern, sourceX = null, sourceY = null) {
         const pixels = imageData.data;
 
         // Sample particles from image (skip pixels for performance)
-        const gap = 11; // Distance between particles (increased to reduce count)
         const newParticles = [];
 
-        for (let y = 0; y < canvas.height; y += gap) {
-            for (let x = 0; x < canvas.width; x += gap) {
+        for (let y = 0; y < canvas.height; y += PARTICLE_CONFIG.GAP) {
+            for (let x = 0; x < canvas.width; x += PARTICLE_CONFIG.GAP) {
                 const index = (y * canvas.width + x) * 4;
                 const red = pixels[index];
                 const green = pixels[index + 1];
@@ -247,12 +304,14 @@ function init(imageSrc = currentPattern, sourceX = null, sourceY = null) {
                 // Only create particle if pixel is not too dark and visible
                 const brightness = (red + green + blue) / 3;
 
-                if (alpha > 50 && brightness > 20) {
+                if (alpha > PARTICLE_CONFIG.MIN_ALPHA && brightness > PARTICLE_CONFIG.MIN_BRIGHTNESS) {
                     // Use actual image colors without tint
-                    const color = `rgba(${red}, ${green}, ${blue}, ${alpha / 255 * 0.8})`;
+                    const color = `rgba(${red}, ${green}, ${blue}, ${alpha / 255 * PARTICLE_CONFIG.OPACITY})`;
 
                     // Vary particle size based on brightness
-                    const size = brightness > 150 ? 4.5 : 3;
+                    const size = brightness > PARTICLE_CONFIG.BRIGHTNESS_THRESHOLD
+                        ? PARTICLE_CONFIG.SIZE_LARGE
+                        : PARTICLE_CONFIG.SIZE_SMALL;
 
                     // Create particle with source point if provided
                     newParticles.push(new Particle(x, y, color, size, sourceX, sourceY));
@@ -260,21 +319,21 @@ function init(imageSrc = currentPattern, sourceX = null, sourceY = null) {
             }
         }
 
-        // Add new particles immediately
+        // Add new particles after delay
         setTimeout(() => {
             particles = newParticles; // Replace old particles
             imageLoaded = true;
             if (!animationRunning) {
                 animate();
             }
-        }, 100);
+        }, ANIMATION_CONFIG.PARTICLE_DELAY);
     };
 
     img.onerror = function() {
-        console.error('Failed to load image');
+        console.error('Failed to load image:', imageSrc);
         // Fallback: create simple grid of pink particles
-        for (let y = 0; y < canvas.height; y += 11) {
-            for (let x = 0; x < canvas.width; x += 11) {
+        for (let y = 0; y < canvas.height; y += PARTICLE_CONFIG.GAP) {
+            for (let x = 0; x < canvas.width; x += PARTICLE_CONFIG.GAP) {
                 if (Math.random() > 0.5) {
                     const colors = [
                         'rgba(255, 105, 180, 0.6)',
@@ -291,8 +350,12 @@ function init(imageSrc = currentPattern, sourceX = null, sourceY = null) {
     };
 }
 
-// Animation loop
+/**
+ * Main animation loop for particle system
+ */
 function animate() {
+    if (!ctx || !canvas) return;
+
     animationRunning = true;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -315,117 +378,113 @@ function animate() {
     });
 
     // Remove fully faded particles
-    particles = particles.filter(p => p.opacity > 0.01);
+    particles = particles.filter(p => p.opacity > ANIMATION_CONFIG.OPACITY_THRESHOLD);
 
     requestAnimationFrame(animate);
 }
 
-// Initialize particles
-init();
+// Initialize particles on load
+if (canvas && ctx) {
+    init();
+}
 
 // ============================================
 // PATTERN SELECTOR
 // ============================================
 
+/**
+ * Initialize pattern selector buttons
+ */
 const patternButtons = document.querySelectorAll('.pattern-btn');
-patternButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        // Remove active class from all buttons
-        patternButtons.forEach(b => b.classList.remove('active'));
+if (patternButtons.length > 0) {
+    patternButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all buttons
+            patternButtons.forEach(b => b.classList.remove('active'));
 
-        // Add active class to clicked button
-        btn.classList.add('active');
+            // Add active class to clicked button
+            btn.classList.add('active');
 
-        // Get button position
-        const rect = btn.getBoundingClientRect();
-        const sourceX = rect.left + rect.width / 2;
-        const sourceY = rect.top + rect.height / 2;
+            // Get button position for particle animation source
+            const rect = btn.getBoundingClientRect();
+            const sourceX = rect.left + rect.width / 2;
+            const sourceY = rect.top + rect.height / 2;
 
-        // Get the pattern from data attribute
-        const pattern = btn.getAttribute('data-pattern');
-        currentPattern = pattern;
-
-        // Reinitialize particles with new pattern from button position
-        init(pattern, sourceX, sourceY);
+            // Get the pattern from data attribute
+            const pattern = btn.getAttribute('data-pattern');
+            if (pattern) {
+                currentPattern = pattern;
+                // Reinitialize particles with new pattern from button position
+                init(pattern, sourceX, sourceY);
+            }
+        });
     });
-});
+}
 
-// Reinitialize on resize
+/**
+ * Reinitialize particles on window resize (debounced)
+ */
 let resizeTimeout;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
         resizeCanvas();
-        init(currentPattern);
-    }, 250);
+        if (canvas && ctx) {
+            init(currentPattern);
+        }
+    }, TIMING_CONFIG.RESIZE_DEBOUNCE);
 });
 
 // ============================================
 // SCROLL & UI INTERACTIONS
 // ============================================
 
-// Scroll reveal animation
+/**
+ * Scroll reveal animation for elements with .reveal class
+ */
 function reveal() {
     const reveals = document.querySelectorAll('.reveal');
+    if (reveals.length === 0) return;
+
+    const windowHeight = window.innerHeight;
+    const elementVisible = 150;
 
     reveals.forEach(element => {
-        const windowHeight = window.innerHeight;
         const elementTop = element.getBoundingClientRect().top;
-        const elementVisible = 150;
-
         if (elementTop < windowHeight - elementVisible) {
             element.classList.add('active');
         }
     });
 }
 
-window.addEventListener('scroll', reveal);
-reveal(); // Check on load
+if (document.querySelectorAll('.reveal').length > 0) {
+    window.addEventListener('scroll', reveal);
+    reveal(); // Check on load
+}
 
-// Smooth scroll for links
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
+/**
+ * Smooth scroll for anchor links
+ */
+const anchorLinks = document.querySelectorAll('a[href^="#"]');
+if (anchorLinks.length > 0) {
+    anchorLinks.forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            if (!href || href === '#') return; // Skip empty anchors
+
+            e.preventDefault();
+            const target = document.querySelector(href);
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
     });
-});
+}
 
-// CTA button click handler
-const ctaButton = document.querySelector('.cta-button');
-ctaButton.addEventListener('click', function(e) {
-    // You can add your Chrome Web Store link here
-    // For now, preventing default
-    e.preventDefault();
-    alert('Chrome Web Store link will be added here!');
-});
-
-// Scroll indicator functionality
-const scrollIndicator = document.getElementById('scrollIndicator');
-const demoSection = document.querySelector('.demo');
-
-scrollIndicator.addEventListener('click', () => {
-    demoSection.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-    });
-});
-
-// Hide scroll indicator when user scrolls past hero section
-window.addEventListener('scroll', () => {
-    const heroSection = document.querySelector('.hero');
-    const heroBottom = heroSection.offsetTop + heroSection.offsetHeight;
-
-    if (window.scrollY > heroBottom - 200) {
-        scrollIndicator.style.opacity = '0';
-        scrollIndicator.style.pointerEvents = 'none';
-    } else {
-        scrollIndicator.style.opacity = '1';
-        scrollIndicator.style.pointerEvents = 'auto';
-    }
-});
+/**
+ * CTA button is now a direct link (no handler needed)
+ * Link is set in HTML to Chrome Web Store
+ */
