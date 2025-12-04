@@ -8,27 +8,33 @@
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     || window.innerWidth < 768;
 
+// Detect device performance tier
+const isLowPowerDevice = isMobile || navigator.hardwareConcurrency <= 4;
+
 const PARTICLE_CONFIG = {
-    GAP: isMobile ? 16 : 11,    // Larger gap on mobile for better performance
+    GAP: isLowPowerDevice ? 18 : 13,  // Adaptive gap based on device power
     SIZE_SMALL: 3,              // Small particle size
     SIZE_LARGE: 4.5,            // Large particle size
     BRIGHTNESS_THRESHOLD: 150,  // Threshold for particle size variation
-    MIN_BRIGHTNESS: 20,         // Minimum brightness for particle creation
-    MIN_ALPHA: 50,              // Minimum alpha for particle visibility
+    MIN_BRIGHTNESS: 25,         // Increased to reduce particle count
+    MIN_ALPHA: 60,              // Increased to reduce particle count
     OPACITY: 0.8                // Base opacity for particles
 };
 
 const MOUSE_CONFIG = {
     BASE_RADIUS: 200,           // Base mouse interaction radius
     SPEED_MULTIPLIER: 3,        // Multiplier for radius based on speed
-    MAX_SPEED_BONUS: 150        // Maximum bonus to radius from speed
+    MAX_SPEED_BONUS: 150,       // Maximum bonus to radius from speed
+    INTERACTION_DISTANCE: 250   // Max distance to check for mouse interaction
 };
 
 const ANIMATION_CONFIG = {
     FADE_IN_SPEED: 0.08,        // Particle fade in speed
     FADE_OUT_SPEED: 0.03,       // Particle fade out speed
     OPACITY_THRESHOLD: 0.01,    // Minimum opacity before removal
-    PARTICLE_DELAY: 100         // Delay before showing new particles (ms)
+    PARTICLE_DELAY: 100,        // Delay before showing new particles (ms)
+    TARGET_FPS: 60,             // Target frames per second
+    FRAME_TIME: 1000 / 60       // Target frame time in ms
 };
 
 const TIMING_CONFIG = {
@@ -57,6 +63,9 @@ let mouseVelocity = { x: 0, y: 0 };
 let lastMousePos = { x: 0, y: 0 };
 let sourcePoint = null; // Point from which new particles will emanate
 let animationRunning = false;
+let lastFrameTime = 0;
+let frameCount = 0;
+let fps = 60;
 
 /**
  * Resizes canvas to match window dimensions
@@ -229,16 +238,17 @@ class Particle {
 
             const dx = this.baseX - this.x;
             const dy = this.baseY - this.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            const distanceSquared = dx * dx + dy * dy;
 
             // Add turbulence for more chaotic movement
             this.vx += (Math.random() - 0.5) * 0.5;
             this.vy += (Math.random() - 0.5) * 0.5;
 
             // If close enough to base position, disable initial spread
-            if (distance < 10) {
+            if (distanceSquared < 100) { // 10^2 = 100
                 this.initialSpread = false;
             } else {
+                const distance = Math.sqrt(distanceSquared);
                 // Gradually increase pull towards base position as they get closer
                 const pullStrength = Math.min(0.15, 0.03 + (1 / distance) * 100);
                 this.vx += dx * pullStrength;
@@ -250,32 +260,38 @@ class Particle {
         } else {
             // Normal mouse interaction with morphing elliptical shape
             if (mouse.x != null && mouse.y != null) {
-                let dx = mouse.x - this.x;
-                let dy = mouse.y - this.y;
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const distanceSquared = dx * dx + dy * dy;
 
-                // Create elliptical distortion based on mouse velocity
-                const velocityAngle = Math.atan2(mouseVelocity.y, mouseVelocity.x);
-                const relativeAngle = Math.atan2(dy, dx) - velocityAngle;
+                // Quick distance check before expensive calculations
+                const maxInteractionDistSquared = MOUSE_CONFIG.INTERACTION_DISTANCE * MOUSE_CONFIG.INTERACTION_DISTANCE;
 
-                // Morph the radius into an ellipse shape
-                const ellipseStretch = 1 + Math.abs(Math.cos(relativeAngle)) * 0.5;
-                const morphedRadius = mouse.radius * ellipseStretch;
+                if (distanceSquared < maxInteractionDistSquared) {
+                    const distance = Math.sqrt(distanceSquared);
 
-                let distance = Math.sqrt(dx * dx + dy * dy);
+                    // Create elliptical distortion based on mouse velocity
+                    const velocityAngle = Math.atan2(mouseVelocity.y, mouseVelocity.x);
+                    const relativeAngle = Math.atan2(dy, dx) - velocityAngle;
 
-                if (distance < morphedRadius) {
-                    let angle = Math.atan2(dy, dx);
-                    let force = (morphedRadius - distance) / morphedRadius;
-                    let pushForce = force * this.density * 0.6;
+                    // Morph the radius into an ellipse shape
+                    const ellipseStretch = 1 + Math.abs(Math.cos(relativeAngle)) * 0.5;
+                    const morphedRadius = mouse.radius * ellipseStretch;
 
-                    this.vx -= Math.cos(angle) * pushForce;
-                    this.vy -= Math.sin(angle) * pushForce;
+                    if (distance < morphedRadius) {
+                        const angle = Math.atan2(dy, dx);
+                        const force = (morphedRadius - distance) / morphedRadius;
+                        const pushForce = force * this.density * 0.6;
+
+                        this.vx -= Math.cos(angle) * pushForce;
+                        this.vy -= Math.sin(angle) * pushForce;
+                    }
                 }
             }
 
             // Return to base position with spring effect
-            let dx = this.baseX - this.x;
-            let dy = this.baseY - this.y;
+            const dx = this.baseX - this.x;
+            const dy = this.baseY - this.y;
 
             this.vx += dx * 0.05;
             this.vy += dy * 0.05;
@@ -397,8 +413,25 @@ function init(imageSrc = currentPattern, sourceX = null, sourceY = null) {
 /**
  * Main animation loop for particle system
  */
-function animate() {
+function animate(currentTime = 0) {
     if (!ctx || !canvas) return;
+
+    // Calculate delta time and FPS
+    const deltaTime = currentTime - lastFrameTime;
+
+    // Throttle to target frame rate on low-power devices
+    if (isLowPowerDevice && deltaTime < ANIMATION_CONFIG.FRAME_TIME) {
+        requestAnimationFrame(animate);
+        return;
+    }
+
+    lastFrameTime = currentTime;
+    frameCount++;
+
+    // Update FPS counter every 60 frames
+    if (frameCount % 60 === 0) {
+        fps = Math.round(1000 / deltaTime);
+    }
 
     animationRunning = true;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -411,18 +444,21 @@ function animate() {
     mouseVelocity.y *= 0.9;
 
     // Reset to base radius when mouse is stationary
-    const currentSpeed = Math.sqrt(mouseVelocity.x ** 2 + mouseVelocity.y ** 2);
-    if (currentSpeed < 0.5) {
+    const velocitySquared = mouseVelocity.x * mouseVelocity.x + mouseVelocity.y * mouseVelocity.y;
+    if (velocitySquared < 0.25) { // 0.5^2 = 0.25
         mouse.targetRadius = mouse.baseRadius;
     }
 
     // Update and draw all particles
-    particles.forEach(particle => {
-        particle.update();
-    });
+    const particleCount = particles.length;
+    for (let i = 0; i < particleCount; i++) {
+        particles[i].update();
+    }
 
-    // Remove fully faded particles
-    particles = particles.filter(p => p.opacity > ANIMATION_CONFIG.OPACITY_THRESHOLD);
+    // Remove fully faded particles (do this less frequently for performance)
+    if (frameCount % 10 === 0) {
+        particles = particles.filter(p => p.opacity > ANIMATION_CONFIG.OPACITY_THRESHOLD);
+    }
 
     requestAnimationFrame(animate);
 }

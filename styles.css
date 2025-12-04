@@ -75,6 +75,13 @@ body::after {
     height: 100%;
     z-index: -1;
     pointer-events: none;
+    /* GPU acceleration */
+    will-change: transform;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Improve rendering */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 /* ============================================
@@ -124,8 +131,7 @@ body::after {
 }
 
 .pattern-btn.active {
-    border-color: var(--pink-light);
-    box-shadow: 0 0 20px rgba(255, 105, 180, 0.6);
+    border-color: #a26dfc;
 }
 
 .pattern-btn.active::before {
