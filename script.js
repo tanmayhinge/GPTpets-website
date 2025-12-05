@@ -12,7 +12,7 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 const isLowPowerDevice = isMobile || navigator.hardwareConcurrency <= 4;
 
 const PARTICLE_CONFIG = {
-    GAP: isLowPowerDevice ? 18 : 13,  // Adaptive gap based on device power
+    GAP: isLowPowerDevice ? 26 : 13,  // Adaptive gap based on device power (26 on mobile = ~50% particles)
     SIZE_SMALL: 3,              // Small particle size
     SIZE_LARGE: 4.5,            // Large particle size
     BRIGHTNESS_THRESHOLD: 150,  // Threshold for particle size variation
